@@ -1,6 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { Appointment } from '../models/appointment';
-import { OnInit } from '@angular/core';
+import * as AppointmentActions from '../store/appointment/appointment.actions';
+import { selectAppointments, selectAppointmentsLoading, selectAppointmentsError } from '../store/appointment/appointment.selectors';
 
 @Component({
   selector: 'app-appointment-list',
@@ -14,9 +17,14 @@ export class AppointmentListComponent implements OnInit {
 
   appointments: Appointment[] = []
 
+  constructor(private store: Store) {}
+
   ngOnInit(): void {
     let savedAppointments = localStorage.getItem("appointments")
-    this.appointments = savedAppointments ? JSON.parse(savedAppointments) : []
+    this.appointments = savedAppointments ? [...JSON.parse(savedAppointments)] : []
+    
+    // Sync localStorage data to NgRx store
+    this.store.dispatch(AppointmentActions.loadAppointmentsSuccess({ appointments: this.appointments }));
   }
 
   addAppointment(){
@@ -27,18 +35,24 @@ export class AppointmentListComponent implements OnInit {
         date: this.newAppointmentDate
       }
 
-      this.appointments.push(newAppointment)
+      this.appointments = [...this.appointments, newAppointment]
 
       this.newAppointmentTitle = "";
       this.newAppointmentDate = new Date();
 
       localStorage.setItem("appointments", JSON.stringify(this.appointments))
+      
+      // Update NgRx store
+      this.store.dispatch(AppointmentActions.addAppointment({ appointment: newAppointment }))
     }
   }
 
   deleteAppointment(index: number){
+    const appointmentToDelete = this.appointments[index];
     this.appointments.splice(index, 1)
     localStorage.setItem("appointments", JSON.stringify(this.appointments))
+    
+    // Update NgRx store
+    this.store.dispatch(AppointmentActions.deleteAppointment({ id: appointmentToDelete.id }));
   }
-
 }
