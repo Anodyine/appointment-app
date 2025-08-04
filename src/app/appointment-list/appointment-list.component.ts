@@ -15,16 +15,14 @@ export class AppointmentListComponent implements OnInit {
   newAppointmentTitle : string = "";
   newAppointmentDate : Date = new Date();
 
-  appointments: Appointment[] = []
+  appointments$: Observable<Appointment[]>;
 
-  constructor(private store: Store) {}
+  constructor(private store: Store) {
+    this.appointments$ = this.store.select(selectAppointments);
+  }
 
   ngOnInit(): void {
-    let savedAppointments = localStorage.getItem("appointments")
-    this.appointments = savedAppointments ? [...JSON.parse(savedAppointments)] : []
-    
-    // Sync localStorage data to NgRx store
-    this.store.dispatch(AppointmentActions.loadAppointmentsSuccess({ appointments: this.appointments }));
+    this.store.dispatch(AppointmentActions.loadAppointments());
   }
 
   addAppointment(){
@@ -35,24 +33,14 @@ export class AppointmentListComponent implements OnInit {
         date: this.newAppointmentDate
       }
 
-      this.appointments = [...this.appointments, newAppointment]
-
       this.newAppointmentTitle = "";
       this.newAppointmentDate = new Date();
 
-      localStorage.setItem("appointments", JSON.stringify(this.appointments))
-      
-      // Update NgRx store
       this.store.dispatch(AppointmentActions.addAppointment({ appointment: newAppointment }))
     }
   }
 
-  deleteAppointment(index: number){
-    const appointmentToDelete = this.appointments[index];
-    this.appointments.splice(index, 1)
-    localStorage.setItem("appointments", JSON.stringify(this.appointments))
-    
-    // Update NgRx store
-    this.store.dispatch(AppointmentActions.deleteAppointment({ id: appointmentToDelete.id }));
+  deleteAppointment(appointment: Appointment){
+    this.store.dispatch(AppointmentActions.deleteAppointment({ id: appointment.id }));
   }
 }
